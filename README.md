@@ -36,6 +36,8 @@ python -m http.server 8000
 
 ## デプロイ
 
+GitHub Pagesでは、`main` ブランチにpushするとGitHub Actionsで自動公開されます。
+
 Vercelでは、このリポジトリをインポートすると静的サイトとして配信できます。CLIを使う場合は `vercel --prod` を実行します。
 
 Firebase Hostingでは、Firebaseプロジェクトを選択したあと `firebase use --add` を実行し、続けて `firebase deploy --only hosting` を実行します。
@@ -50,6 +52,9 @@ Firebase Hostingでは、Firebaseプロジェクトを選択したあと `fireba
 │   ├── icon-192.png
 │   ├── icon-512.png
 │   └── ogp.png
+├── .github/
+│   └── workflows/
+│       └── pages.yml
 ├── app.js
 ├── firebase.json
 ├── index.html
