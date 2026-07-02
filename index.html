@@ -3,20 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Capsule Shelf | ガチャガチャ管理ツール</title>
+    <title>Capsule Shelf | ガチャガチャ管理サイト</title>
     <meta
       name="description"
-      content="発売中・発売予定のガチャガチャとラインナップ、所持数を写真つきで管理できるサイト。"
+      content="発売中・発売予定のガチャガチャとラインナップ、ほしい数、所持数を写真つきで管理できるサイト。"
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Capsule Shelf | ガチャガチャ管理ツール" />
+    <meta property="og:title" content="Capsule Shelf | ガチャガチャ管理サイト" />
     <meta
       property="og:description"
-      content="ガチャの発売月・週、ラインナップ、所持数をスマホで見やすく管理。"
+      content="ガチャの発売月・週、ラインナップ、ほしい数、所持数をスマホで見やすく管理。"
     />
     <meta property="og:image" content="./assets/ogp.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#f55f7a" />
+    <meta name="theme-color" content="#ff6f9a" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./assets/icon-192.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -31,20 +31,8 @@
         </a>
         <button class="ghost-button small-button" id="settingsToggle" type="button">設定</button>
       </nav>
-
-      <section class="hero-body">
-        <div>
-          <p class="eyebrow">Gachapon Release Manager</p>
-          <h1>発売予定からラインナップまで、ガチャをまるっと管理。</h1>
-          <p class="lead">
-            ガチャごとに写真・発売月・週を登録。ラインナップごとに写真を切り取り、ほしい数と所持数を管理できます。
-          </p>
-        </div>
-        <div class="hero-panel" aria-label="登録状況">
-          <strong id="heroTotal">0</strong>
-          <span>発売中のガチャ</span>
-          <small id="heroUpcoming">発売予定 0件</small>
-        </div>
+      <section class="hero-title">
+        <h1>ガチャガチャ管理サイト</h1>
       </section>
     </header>
 
@@ -70,12 +58,8 @@
         <button class="tab" data-tab="stats" type="button">統計</button>
       </section>
 
-      <section class="panel is-active" id="current" aria-labelledby="currentTitle">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">On Sale</p>
-            <h2 id="currentTitle">発売中のガチャ</h2>
-          </div>
+      <section class="panel is-active" id="current" aria-label="発売中">
+        <div class="section-head simple-head">
           <button class="primary-button" data-open-form="currentForm" type="button">ガチャを追加</button>
         </div>
 
@@ -117,12 +101,8 @@
         </div>
       </section>
 
-      <section class="panel" id="upcoming" aria-labelledby="upcomingTitle">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">Coming Soon</p>
-            <h2 id="upcomingTitle">発売予定のガチャ</h2>
-          </div>
+      <section class="panel" id="upcoming" aria-label="発売予定">
+        <div class="section-head simple-head">
           <button class="primary-button" data-open-form="upcomingForm" type="button">予定を追加</button>
         </div>
 
@@ -168,31 +148,10 @@
         <div class="section-head">
           <div>
             <p class="eyebrow">Stats</p>
-            <h2 id="statsTitle">統計</h2>
+            <h2 id="statsTitle">ガチャごとの統計</h2>
           </div>
         </div>
-        <div class="stats-grid">
-          <article class="stat-card">
-            <span>発売中</span>
-            <strong id="statCurrent">0</strong>
-          </article>
-          <article class="stat-card">
-            <span>発売予定</span>
-            <strong id="statUpcoming">0</strong>
-          </article>
-          <article class="stat-card">
-            <span>ほしい数合計</span>
-            <strong id="statLineup">0</strong>
-          </article>
-          <article class="stat-card">
-            <span>所持数合計</span>
-            <strong id="statOwned">0</strong>
-          </article>
-        </div>
-        <div class="chart-wrap">
-          <h3>ガチャごとのリザルト</h3>
-          <div id="releaseResults" class="result-grid"></div>
-        </div>
+        <div id="releaseResults" class="result-list"></div>
       </section>
     </main>
 
@@ -230,7 +189,7 @@
                 <div class="crop-section">
                   <div class="crop-head">
                     <strong>メイン写真から切り取り</strong>
-                    <span>枠をドラッグして位置を調整。右下の丸で正方形のまま大きさを変えられます。</span>
+                    <span>枠をドラッグして位置調整。右下の丸で正方形のまま大きさを変えられます。</span>
                   </div>
                   <div class="cropper">
                     <img class="crop-source" alt="" />
@@ -278,7 +237,7 @@
           </div>
         </div>
         <div class="lineup-actions">
-          <button class="danger-button delete-lineup-button" type="button">削除</button>
+          <button class="danger-button delete-lineup-button" type="button" aria-label="削除">×</button>
         </div>
       </article>
     </template>

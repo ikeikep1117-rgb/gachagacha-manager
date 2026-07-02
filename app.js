@@ -266,6 +266,9 @@ function updateAchievementText(target, item) {
   const owned = Math.max(0, Number(item.count) || 0);
   const percent = desired ? Math.min(999, Math.round((owned / desired) * 100)) : 0;
   target.textContent = `達成 ${owned}/${desired} (${percent}%)`;
+  target.classList.toggle("is-low", percent < 50);
+  target.classList.toggle("is-mid", percent >= 50 && percent < 100);
+  target.classList.toggle("is-done", percent >= 100);
 }
 
 function setupCropper(form, photo) {
@@ -409,22 +412,11 @@ function setBoxRect(box, cropperRect, next) {
 }
 
 function renderStats(current, upcoming) {
-  const allLineup = state.releases.flatMap((release) => release.lineup);
-  const owned = allLineup.reduce((sum, item) => sum + item.count, 0);
-  const desired = allLineup.reduce((sum, item) => sum + (Number(item.desiredCount) || 0), 0);
-
-  document.querySelector("#heroTotal").textContent = current.length;
-  document.querySelector("#heroUpcoming").textContent = `発売予定 ${upcoming.length}件`;
-  document.querySelector("#statCurrent").textContent = current.length;
-  document.querySelector("#statUpcoming").textContent = upcoming.length;
-  document.querySelector("#statLineup").textContent = desired;
-  document.querySelector("#statOwned").textContent = owned;
-
   const results = document.querySelector("#releaseResults");
   results.innerHTML = "";
 
   if (!state.releases.length) {
-    results.innerHTML = '<p class="note">ガチャを登録すると、ガチャごとのリザルトが表示されます。</p>';
+    results.innerHTML = '<p class="note">ガチャを登録すると、ガチャごとの統計が表示されます。</p>';
     return;
   }
 
@@ -434,17 +426,21 @@ function renderStats(current, upcoming) {
     const percent = releaseDesired ? Math.round((releaseOwned / releaseDesired) * 100) : 0;
     const card = document.createElement("article");
     card.className = "result-card";
+    card.classList.toggle("is-open", release.statsOpen);
     card.innerHTML = `
-      <div>
+      <button class="result-summary" type="button">
         <strong class="result-name"></strong>
+      </button>
+      <div class="result-detail">
         <span class="result-meta"></span>
+        <div class="result-numbers">
+          <span><b class="result-owned"></b> 持ってる</span>
+          <span><b class="result-desired"></b> ほしい</span>
+          <span><b class="result-percent"></b> 達成</span>
+        </div>
+        <span class="result-track"><span class="result-fill"></span></span>
+        <div class="result-lineup"></div>
       </div>
-      <div class="result-numbers">
-        <span><b class="result-owned"></b> 持ってる</span>
-        <span><b class="result-desired"></b> ほしい</span>
-        <span><b class="result-percent"></b> 達成</span>
-      </div>
-      <span class="result-track"><span class="result-fill"></span></span>
     `;
     card.querySelector(".result-name").textContent = release.name;
     card.querySelector(".result-meta").textContent = `${release.lineup.length}種 / ${formatMonth(release.releaseMonth)} 第${release.releaseWeek}週`;
@@ -452,6 +448,22 @@ function renderStats(current, upcoming) {
     card.querySelector(".result-desired").textContent = releaseDesired;
     card.querySelector(".result-percent").textContent = `${percent}%`;
     card.querySelector(".result-fill").style.width = `${Math.min(100, percent)}%`;
+    card.querySelector(".result-summary").addEventListener("click", () => {
+      release.statsOpen = !release.statsOpen;
+      save();
+      renderStats(current, upcoming);
+    });
+
+    const lineup = card.querySelector(".result-lineup");
+    release.lineup.forEach((item) => {
+      const desired = Number(item.desiredCount) || 0;
+      const owned = Number(item.count) || 0;
+      const itemPercent = desired ? Math.round((owned / desired) * 100) : 0;
+      const row = document.createElement("p");
+      row.textContent = `${item.name}: ${owned}/${desired} (${itemPercent}%)`;
+      lineup.append(row);
+    });
+
     results.append(card);
   });
 }
