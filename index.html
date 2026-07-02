@@ -37,7 +37,7 @@
           <p class="eyebrow">Gachapon Release Manager</p>
           <h1>発売予定からラインナップまで、ガチャをまるっと管理。</h1>
           <p class="lead">
-            ガチャごとに写真・発売月・週を登録。ラインナップごとに写真を切り取り、所持数を管理できます。
+            ガチャごとに写真・発売月・週を登録。ラインナップごとに写真を切り取り、ほしい数と所持数を管理できます。
           </p>
         </div>
         <div class="hero-panel" aria-label="登録状況">
@@ -181,7 +181,7 @@
             <strong id="statUpcoming">0</strong>
           </article>
           <article class="stat-card">
-            <span>ラインナップ</span>
+            <span>ほしい数合計</span>
             <strong id="statLineup">0</strong>
           </article>
           <article class="stat-card">
@@ -190,8 +190,8 @@
           </article>
         </div>
         <div class="chart-wrap">
-          <h3>ガチャ別ラインナップ数</h3>
-          <div id="releaseChart" class="series-chart"></div>
+          <h3>ガチャごとのリザルト</h3>
+          <div id="releaseResults" class="result-grid"></div>
         </div>
       </section>
     </main>
@@ -230,17 +230,13 @@
                 <div class="crop-section">
                   <div class="crop-head">
                     <strong>メイン写真から切り取り</strong>
-                    <span>枠をドラッグして、角をつまんでサイズ調整できます。</span>
+                    <span>枠をドラッグして位置を調整。右下の丸で正方形のまま大きさを変えられます。</span>
                   </div>
                   <div class="cropper">
                     <img class="crop-source" alt="" />
                     <div class="crop-box" aria-hidden="true">
                       <span class="crop-handle"></span>
                     </div>
-                  </div>
-                  <div class="crop-actions">
-                    <button class="ghost-button crop-reset-button" type="button">中央に戻す</button>
-                    <button class="ghost-button crop-square-button" type="button">正方形にする</button>
                   </div>
                 </div>
                 <p class="note">別写真を入れた場合はその写真を使います。入れない場合は、ここで切り取った画像を使います。</p>
@@ -269,15 +265,19 @@
         <div class="lineup-image"></div>
         <div class="lineup-body">
           <strong class="lineup-title"></strong>
-          <div class="counter">
-            <button class="ghost-button minus-button" type="button">-</button>
-            <span class="count-value">0</span>
-            <button class="ghost-button plus-button" type="button">+</button>
+          <div class="lineup-counts">
+            <label>
+              ほしい
+              <input class="desired-input" type="number" min="0" inputmode="numeric" />
+            </label>
+            <label>
+              持ってる
+              <input class="owned-input" type="number" min="0" inputmode="numeric" />
+            </label>
+            <span class="achievement-text"></span>
           </div>
         </div>
         <div class="lineup-actions">
-          <button class="ghost-button move-up-button" type="button">上へ</button>
-          <button class="ghost-button move-down-button" type="button">下へ</button>
           <button class="danger-button delete-lineup-button" type="button">削除</button>
         </div>
       </article>

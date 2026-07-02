@@ -180,6 +180,7 @@ function renderReleaseList(container, releases, listType) {
         id: crypto.randomUUID(),
         name: nameInput.value.trim(),
         photo,
+        desiredCount: 1,
         count: 0,
         createdAt: new Date().toISOString(),
       });
@@ -218,28 +219,38 @@ function renderLineup(node, release) {
   release.lineup.forEach((item, index) => {
     const row = lineupTemplate.content.firstElementChild.cloneNode(true);
     const image = row.querySelector(".lineup-image");
-    row.querySelector(".lineup-title").textContent = item.name;
-    row.querySelector(".count-value").textContent = item.count;
-    image.style.backgroundImage = `url("${item.photo || release.photo}")`;
+    const desiredInput = row.querySelector(".desired-input");
+    const ownedInput = row.querySelector(".owned-input");
+    const achievementText = row.querySelector(".achievement-text");
 
-    row.querySelector(".minus-button").addEventListener("click", () => {
-      item.count = Math.max(0, item.count - 1);
+    item.desiredCount = item.desiredCount ?? 1;
+    item.count = item.count ?? 0;
+    row.querySelector(".lineup-title").textContent = item.name;
+    image.style.backgroundImage = `url("${item.photo || release.photo}")`;
+    desiredInput.value = item.desiredCount ?? 1;
+    ownedInput.value = item.count ?? 0;
+    updateAchievementText(achievementText, item);
+
+    desiredInput.addEventListener("input", () => {
+      item.desiredCount = Math.max(0, Number(desiredInput.value) || 0);
       save();
-      render();
+      updateAchievementText(achievementText, item);
+      renderStats(
+        state.releases.filter((releaseItem) => releaseItem.status === "current"),
+        state.releases.filter((releaseItem) => releaseItem.status === "upcoming")
+      );
     });
-    row.querySelector(".plus-button").addEventListener("click", () => {
-      item.count += 1;
+
+    ownedInput.addEventListener("input", () => {
+      item.count = Math.max(0, Number(ownedInput.value) || 0);
       save();
-      render();
+      updateAchievementText(achievementText, item);
+      renderStats(
+        state.releases.filter((releaseItem) => releaseItem.status === "current"),
+        state.releases.filter((releaseItem) => releaseItem.status === "upcoming")
+      );
     });
-    row.querySelector(".move-up-button").disabled = index === 0;
-    row.querySelector(".move-up-button").addEventListener("click", () => {
-      moveLineupItem(release, index, index - 1);
-    });
-    row.querySelector(".move-down-button").disabled = index === release.lineup.length - 1;
-    row.querySelector(".move-down-button").addEventListener("click", () => {
-      moveLineupItem(release, index, index + 1);
-    });
+
     row.querySelector(".delete-lineup-button").addEventListener("click", () => {
       release.lineup = release.lineup.filter((lineupItem) => lineupItem.id !== item.id);
       save();
@@ -250,12 +261,11 @@ function renderLineup(node, release) {
   });
 }
 
-function moveLineupItem(release, fromIndex, toIndex) {
-  if (toIndex < 0 || toIndex >= release.lineup.length) return;
-  const [item] = release.lineup.splice(fromIndex, 1);
-  release.lineup.splice(toIndex, 0, item);
-  save();
-  render();
+function updateAchievementText(target, item) {
+  const desired = Math.max(0, Number(item.desiredCount) || 0);
+  const owned = Math.max(0, Number(item.count) || 0);
+  const percent = desired ? Math.min(999, Math.round((owned / desired) * 100)) : 0;
+  target.textContent = `達成 ${owned}/${desired} (${percent}%)`;
 }
 
 function setupCropper(form, photo) {
@@ -263,9 +273,6 @@ function setupCropper(form, photo) {
   const box = form.querySelector(".crop-box");
   const cropper = form.querySelector(".cropper");
   source.src = photo;
-
-  form.querySelector(".crop-reset-button").addEventListener("click", () => resetCropBox(form));
-  form.querySelector(".crop-square-button").addEventListener("click", () => makeCropBoxSquare(form));
 
   let mode = "";
   let startX = 0;
@@ -300,11 +307,12 @@ function setupCropper(form, photo) {
       return;
     }
 
+    const size = startRect.width + Math.max(dx, dy);
     setBoxRect(box, cropperRect, {
       left: startRect.left,
       top: startRect.top,
-      width: startRect.width + dx,
-      height: startRect.height + dy,
+      width: size,
+      height: size,
     });
   };
 
@@ -331,20 +339,6 @@ function resetCropBox(form) {
   setBoxRect(box, rect, {
     left: (rect.width - size) / 2,
     top: (rect.height - size) / 2,
-    width: size,
-    height: size,
-  });
-}
-
-function makeCropBoxSquare(form) {
-  const cropper = form.querySelector(".cropper");
-  const box = form.querySelector(".crop-box");
-  const cropperRect = cropper.getBoundingClientRect();
-  const rect = getBoxRect(box);
-  const size = Math.min(rect.width, rect.height);
-  setBoxRect(box, cropperRect, {
-    left: rect.left,
-    top: rect.top,
     width: size,
     height: size,
   });
@@ -402,8 +396,9 @@ function getBoxRect(box) {
 
 function setBoxRect(box, cropperRect, next) {
   const minSize = 44;
-  const width = Math.min(Math.max(next.width, minSize), cropperRect.width);
-  const height = Math.min(Math.max(next.height, minSize), cropperRect.height);
+  const size = Math.min(Math.max(Math.min(next.width, next.height), minSize), cropperRect.width, cropperRect.height);
+  const width = size;
+  const height = size;
   const left = Math.min(Math.max(next.left, 0), cropperRect.width - width);
   const top = Math.min(Math.max(next.top, 0), cropperRect.height - height);
 
@@ -416,36 +411,48 @@ function setBoxRect(box, cropperRect, next) {
 function renderStats(current, upcoming) {
   const allLineup = state.releases.flatMap((release) => release.lineup);
   const owned = allLineup.reduce((sum, item) => sum + item.count, 0);
+  const desired = allLineup.reduce((sum, item) => sum + (Number(item.desiredCount) || 0), 0);
 
   document.querySelector("#heroTotal").textContent = current.length;
   document.querySelector("#heroUpcoming").textContent = `発売予定 ${upcoming.length}件`;
   document.querySelector("#statCurrent").textContent = current.length;
   document.querySelector("#statUpcoming").textContent = upcoming.length;
-  document.querySelector("#statLineup").textContent = allLineup.length;
+  document.querySelector("#statLineup").textContent = desired;
   document.querySelector("#statOwned").textContent = owned;
 
-  const chart = document.querySelector("#releaseChart");
-  chart.innerHTML = "";
-  const rows = state.releases.map((release) => [release.name, release.lineup.length]);
-  const max = Math.max(...rows.map(([, count]) => count), 1);
+  const results = document.querySelector("#releaseResults");
+  results.innerHTML = "";
 
-  if (!rows.length) {
-    chart.innerHTML = '<p class="note">ガチャを登録すると、ラインナップ数が表示されます。</p>';
+  if (!state.releases.length) {
+    results.innerHTML = '<p class="note">ガチャを登録すると、ガチャごとのリザルトが表示されます。</p>';
     return;
   }
 
-  rows.forEach(([label, count]) => {
-    const row = document.createElement("div");
-    row.className = "bar-row";
-    row.innerHTML = `
-      <span class="bar-name"></span>
-      <span class="bar-track"><span class="bar-fill"></span></span>
-      <strong></strong>
+  state.releases.forEach((release) => {
+    const releaseDesired = release.lineup.reduce((sum, item) => sum + (Number(item.desiredCount) || 0), 0);
+    const releaseOwned = release.lineup.reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+    const percent = releaseDesired ? Math.round((releaseOwned / releaseDesired) * 100) : 0;
+    const card = document.createElement("article");
+    card.className = "result-card";
+    card.innerHTML = `
+      <div>
+        <strong class="result-name"></strong>
+        <span class="result-meta"></span>
+      </div>
+      <div class="result-numbers">
+        <span><b class="result-owned"></b> 持ってる</span>
+        <span><b class="result-desired"></b> ほしい</span>
+        <span><b class="result-percent"></b> 達成</span>
+      </div>
+      <span class="result-track"><span class="result-fill"></span></span>
     `;
-    row.querySelector(".bar-name").textContent = label;
-    row.querySelector(".bar-fill").style.width = `${Math.max(8, (count / max) * 100)}%`;
-    row.querySelector("strong").textContent = count;
-    chart.append(row);
+    card.querySelector(".result-name").textContent = release.name;
+    card.querySelector(".result-meta").textContent = `${release.lineup.length}種 / ${formatMonth(release.releaseMonth)} 第${release.releaseWeek}週`;
+    card.querySelector(".result-owned").textContent = releaseOwned;
+    card.querySelector(".result-desired").textContent = releaseDesired;
+    card.querySelector(".result-percent").textContent = `${percent}%`;
+    card.querySelector(".result-fill").style.width = `${Math.min(100, percent)}%`;
+    results.append(card);
   });
 }
 
@@ -517,6 +524,7 @@ function normalizeImportedData(data) {
         id: item.id || crypto.randomUUID(),
         name: item.name || "ラインナップ",
         photo: item.photo || "",
+        desiredCount: Number(item.desiredCount) || 1,
         count: Number(item.count) || 0,
         createdAt: item.createdAt || new Date().toISOString(),
       })),
@@ -536,6 +544,7 @@ function normalizeImportedData(data) {
         id: crypto.randomUUID(),
         name: item.name || "ラインナップ",
         photo: "",
+        desiredCount: 1,
         count: Number(item.quantity) || 0,
         createdAt: item.createdAt || new Date().toISOString(),
       },

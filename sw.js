@@ -1,4 +1,4 @@
-const CACHE_NAME = "capsule-shelf-v3";
+const CACHE_NAME = "capsule-shelf-v4";
 const CACHE_FILES = [
   "./",
   "./index.html",
