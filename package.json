@@ -1,0 +1,11 @@
+{
+  "name": "capsule-shelf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ガチャガチャのコレクションを管理する静的Webアプリ",
+  "scripts": {
+    "serve": "python -m http.server 8000",
+    "deploy:vercel": "vercel --prod",
+    "deploy:firebase": "firebase deploy --only hosting"
+  }
+}

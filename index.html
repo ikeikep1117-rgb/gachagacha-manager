@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capsule Shelf | ガチャガチャ管理サイト</title>
+    <meta
+      name="description"
+      content="発売中・発売予定のガチャガチャとラインナップ、ほしい数、所持数を写真つきで管理できるサイト。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Capsule Shelf | ガチャガチャ管理サイト" />
+    <meta
+      property="og:description"
+      content="ガチャの発売月・週、ラインナップ、ほしい数、所持数をスマホで見やすく管理。"
+    />
+    <meta property="og:image" content="./assets/ogp.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#ff6f9a" />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="topbar" aria-label="サイトナビゲーション">
+        <a class="brand" href="#">
+          <span class="brand-mark" aria-hidden="true">CS</span>
+          <span>Capsule Shelf</span>
+        </a>
+        <button class="ghost-button small-button" id="settingsToggle" type="button">設定</button>
+      </nav>
+      <section class="hero-title">
+        <h1>ガチャガチャ管理サイト</h1>
+      </section>
+    </header>
+
+    <main class="app-shell">
+      <section class="settings-drawer" id="settingsPanel" aria-label="設定">
+        <div>
+          <h2>設定</h2>
+          <p class="note">データはこのブラウザ内に保存されます。別端末へ移す場合はJSONを書き出してください。</p>
+        </div>
+        <div class="settings-grid">
+          <button class="ghost-button" id="exportButton" type="button">JSONを書き出す</button>
+          <label class="import-label">
+            JSONを読み込む
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+          <button class="danger-button" id="clearButton" type="button">すべて削除</button>
+        </div>
+      </section>
+
+      <section class="tabbar" aria-label="メインタブ">
+        <button class="tab is-active" data-tab="current" type="button">発売中</button>
+        <button class="tab" data-tab="upcoming" type="button">発売予定</button>
+        <button class="tab" data-tab="stats" type="button">統計</button>
+      </section>
+
+      <section class="panel is-active" id="current" aria-label="発売中">
+        <div class="section-head simple-head">
+          <button class="primary-button" data-open-form="currentForm" type="button">ガチャを追加</button>
+        </div>
+
+        <form class="gacha-form" id="currentForm" aria-label="発売中ガチャ追加フォーム">
+          <div class="form-grid">
+            <label>
+              ガチャの名前
+              <input id="currentName" required placeholder="例：レトロ喫茶ミニチュア" />
+            </label>
+            <label>
+              発売月
+              <input id="currentMonth" type="month" required />
+            </label>
+            <label>
+              発売週
+              <select id="currentWeek" required>
+                <option value="1">第1週</option>
+                <option value="2">第2週</option>
+                <option value="3">第3週</option>
+                <option value="4">第4週</option>
+                <option value="5">第5週</option>
+              </select>
+            </label>
+            <label class="wide">
+              ラインナップ写真
+              <input id="currentPhoto" type="file" accept="image/*" required />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">発売中に追加</button>
+            <button class="ghost-button" type="button" data-close-form="currentForm">閉じる</button>
+          </div>
+        </form>
+
+        <div class="gacha-list" id="currentList"></div>
+        <div class="empty-state" id="currentEmpty">
+          <h3>発売中のガチャはまだありません</h3>
+          <p>名前・写真・発売月・週だけ入れて、あとからラインナップを足せます。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="upcoming" aria-label="発売予定">
+        <div class="section-head simple-head">
+          <button class="primary-button" data-open-form="upcomingForm" type="button">予定を追加</button>
+        </div>
+
+        <form class="gacha-form" id="upcomingForm" aria-label="発売予定ガチャ追加フォーム">
+          <div class="form-grid">
+            <label>
+              ガチャの名前
+              <input id="upcomingName" required placeholder="例：夏の水族館マスコット" />
+            </label>
+            <label>
+              発売予定月
+              <input id="upcomingMonth" type="month" required />
+            </label>
+            <label>
+              発売予定週
+              <select id="upcomingWeek" required>
+                <option value="1">第1週</option>
+                <option value="2">第2週</option>
+                <option value="3">第3週</option>
+                <option value="4">第4週</option>
+                <option value="5">第5週</option>
+              </select>
+            </label>
+            <label class="wide">
+              おおもとのラインナップ写真
+              <input id="upcomingPhoto" type="file" accept="image/*" required />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">発売予定に追加</button>
+            <button class="ghost-button" type="button" data-close-form="upcomingForm">閉じる</button>
+          </div>
+        </form>
+
+        <div class="gacha-list compact-list" id="upcomingList"></div>
+        <div class="empty-state" id="upcomingEmpty">
+          <h3>発売予定は空です</h3>
+          <p>予定の週になると、自動で発売中タブへ移動します。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="stats" aria-labelledby="statsTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Stats</p>
+            <h2 id="statsTitle">ガチャごとの統計</h2>
+          </div>
+        </div>
+        <div id="releaseResults" class="result-list"></div>
+      </section>
+    </main>
+
+    <template id="gachaTemplate">
+      <article class="gacha-release">
+        <button class="release-summary" type="button">
+          <span class="summary-photo"></span>
+          <span class="summary-text">
+            <strong class="release-name"></strong>
+            <small class="release-date"></small>
+          </span>
+          <span class="summary-count"></span>
+        </button>
+        <div class="release-detail">
+          <div class="release-layout">
+            <section class="main-photo-pane">
+              <img class="main-photo" alt="" />
+            </section>
+            <section class="lineup-pane">
+              <div class="lineup-head">
+                <h3>ラインナップ</h3>
+                <button class="ghost-button add-lineup-button" type="button">ラインナップ追加</button>
+              </div>
+              <form class="lineup-form">
+                <div class="form-grid mini-grid">
+                  <label>
+                    名前
+                    <input class="lineup-name-input" required placeholder="例：クリームソーダ" />
+                  </label>
+                  <label>
+                    別写真を使う
+                    <input class="lineup-photo-input" type="file" accept="image/*" />
+                  </label>
+                </div>
+                <div class="crop-section">
+                  <div class="crop-head">
+                    <strong>メイン写真から切り取り</strong>
+                    <span>枠をドラッグして位置調整。右下の丸で正方形のまま大きさを変えられます。</span>
+                  </div>
+                  <div class="cropper">
+                    <img class="crop-source" alt="" />
+                    <div class="crop-box" aria-hidden="true">
+                      <span class="crop-handle"></span>
+                    </div>
+                  </div>
+                </div>
+                <p class="note">別写真を入れた場合はその写真を使います。入れない場合は、ここで切り取った画像を使います。</p>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit">追加</button>
+                  <button class="ghost-button cancel-lineup-button" type="button">閉じる</button>
+                </div>
+              </form>
+              <div class="lineup-list"></div>
+              <div class="empty-state lineup-empty">
+                <h3>まだラインナップがありません</h3>
+                <p>ラインナップ名を追加すると、切り取り画像と所持数管理ができます。</p>
+              </div>
+            </section>
+          </div>
+          <div class="release-actions">
+            <button class="ghost-button move-button" type="button"></button>
+            <button class="danger-button delete-release-button" type="button">削除</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <template id="lineupTemplate">
+      <article class="lineup-item">
+        <div class="lineup-image"></div>
+        <div class="lineup-body">
+          <strong class="lineup-title"></strong>
+          <div class="lineup-counts">
+            <label>
+              ほしい
+              <input class="desired-input" type="number" min="0" inputmode="numeric" />
+            </label>
+            <label>
+              持ってる
+              <input class="owned-input" type="number" min="0" inputmode="numeric" />
+            </label>
+            <span class="achievement-meter">
+              <span class="achievement-text"></span>
+              <span class="achievement-track"><span class="achievement-fill"></span></span>
+            </span>
+          </div>
+        </div>
+        <div class="lineup-actions">
+          <button class="danger-button delete-lineup-button" type="button" aria-label="削除">×</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Capsule Shelf app icon">
+  <rect width="512" height="512" rx="112" fill="#fff8f5"/>
+  <circle cx="256" cy="256" r="178" fill="#fff" stroke="#24131b" stroke-width="22"/>
+  <path d="M78 256h356" stroke="#24131b" stroke-width="22"/>
+  <path d="M89 256a167 167 0 0 1 334 0z" fill="#f55f7a"/>
+  <path d="M89 256a167 167 0 0 0 334 0z" fill="#58c7b8"/>
+  <circle cx="256" cy="256" r="42" fill="#ffd064" stroke="#24131b" stroke-width="18"/>
+  <path d="M181 155c28-23 70-35 113-25" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" opacity=".8"/>
+</svg>

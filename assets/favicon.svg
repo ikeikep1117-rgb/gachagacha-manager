@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Capsule Shelf icon">
+  <rect width="64" height="64" rx="18" fill="#fff8f5"/>
+  <circle cx="32" cy="32" r="23" fill="#fff" stroke="#24131b" stroke-width="3"/>
+  <path d="M10 32h44" stroke="#24131b" stroke-width="3"/>
+  <path d="M13 32a19 19 0 0 1 38 0z" fill="#f55f7a"/>
+  <path d="M13 32a19 19 0 0 0 38 0z" fill="#58c7b8"/>
+  <circle cx="32" cy="32" r="5" fill="#ffd064" stroke="#24131b" stroke-width="2"/>
+</svg>
