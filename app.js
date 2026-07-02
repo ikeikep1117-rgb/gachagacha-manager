@@ -156,26 +156,30 @@ function renderReleaseList(container, releases, listType) {
     });
 
     const lineupForm = node.querySelector(".lineup-form");
+    setupCropper(lineupForm, release.photo);
+
     node.querySelector(".add-lineup-button").addEventListener("click", () => {
       lineupForm.classList.add("is-open");
       lineupForm.querySelector("input").focus();
+      resetCropBox(lineupForm);
     });
+
     node.querySelector(".cancel-lineup-button").addEventListener("click", () => {
       lineupForm.reset();
       lineupForm.classList.remove("is-open");
+      resetCropBox(lineupForm);
     });
+
     lineupForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const nameInput = lineupForm.querySelector(".lineup-name-input");
       const photoInput = lineupForm.querySelector(".lineup-photo-input");
-      const moodInput = lineupForm.querySelector(".lineup-mood-input");
-      const photo = photoInput.files[0] ? await fileToDataUrl(photoInput.files[0]) : "";
+      const photo = photoInput.files[0] ? await fileToDataUrl(photoInput.files[0]) : await cropMainPhoto(lineupForm);
 
       release.lineup.push({
         id: crypto.randomUUID(),
         name: nameInput.value.trim(),
         photo,
-        mood: moodInput.value,
         count: 0,
         createdAt: new Date().toISOString(),
       });
@@ -216,28 +220,7 @@ function renderLineup(node, release) {
     const image = row.querySelector(".lineup-image");
     row.querySelector(".lineup-title").textContent = item.name;
     row.querySelector(".count-value").textContent = item.count;
-
-    if (item.photo) {
-      image.style.backgroundImage = `url("${item.photo}")`;
-      image.style.backgroundSize = "cover";
-      image.style.backgroundPosition = "center";
-    } else {
-      const total = Math.max(release.lineup.length, 1);
-      image.style.backgroundImage = `url("${release.photo}")`;
-      image.style.backgroundSize = `${total * 100}% 100%`;
-      image.style.backgroundPosition = `${total === 1 ? 50 : (index / (total - 1)) * 100}% center`;
-    }
-
-    const moodSelect = row.querySelector(".mood-select");
-    moodSelect.value = item.mood;
-    moodSelect.addEventListener("change", () => {
-      item.mood = moodSelect.value;
-      save();
-      renderStats(
-        state.releases.filter((releaseItem) => releaseItem.status === "current"),
-        state.releases.filter((releaseItem) => releaseItem.status === "upcoming")
-      );
-    });
+    image.style.backgroundImage = `url("${item.photo || release.photo}")`;
 
     row.querySelector(".minus-button").addEventListener("click", () => {
       item.count = Math.max(0, item.count - 1);
@@ -249,6 +232,14 @@ function renderLineup(node, release) {
       save();
       render();
     });
+    row.querySelector(".move-up-button").disabled = index === 0;
+    row.querySelector(".move-up-button").addEventListener("click", () => {
+      moveLineupItem(release, index, index - 1);
+    });
+    row.querySelector(".move-down-button").disabled = index === release.lineup.length - 1;
+    row.querySelector(".move-down-button").addEventListener("click", () => {
+      moveLineupItem(release, index, index + 1);
+    });
     row.querySelector(".delete-lineup-button").addEventListener("click", () => {
       release.lineup = release.lineup.filter((lineupItem) => lineupItem.id !== item.id);
       save();
@@ -259,14 +250,172 @@ function renderLineup(node, release) {
   });
 }
 
+function moveLineupItem(release, fromIndex, toIndex) {
+  if (toIndex < 0 || toIndex >= release.lineup.length) return;
+  const [item] = release.lineup.splice(fromIndex, 1);
+  release.lineup.splice(toIndex, 0, item);
+  save();
+  render();
+}
+
+function setupCropper(form, photo) {
+  const source = form.querySelector(".crop-source");
+  const box = form.querySelector(".crop-box");
+  const cropper = form.querySelector(".cropper");
+  source.src = photo;
+
+  form.querySelector(".crop-reset-button").addEventListener("click", () => resetCropBox(form));
+  form.querySelector(".crop-square-button").addEventListener("click", () => makeCropBoxSquare(form));
+
+  let mode = "";
+  let startX = 0;
+  let startY = 0;
+  let startRect = null;
+
+  const start = (event, nextMode) => {
+    event.preventDefault();
+    const point = getPointer(event);
+    mode = nextMode;
+    startX = point.x;
+    startY = point.y;
+    startRect = getBoxRect(box);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+  };
+
+  const move = (event) => {
+    if (!mode || !startRect) return;
+    const point = getPointer(event);
+    const cropperRect = cropper.getBoundingClientRect();
+    const dx = point.x - startX;
+    const dy = point.y - startY;
+
+    if (mode === "move") {
+      setBoxRect(box, cropperRect, {
+        left: startRect.left + dx,
+        top: startRect.top + dy,
+        width: startRect.width,
+        height: startRect.height,
+      });
+      return;
+    }
+
+    setBoxRect(box, cropperRect, {
+      left: startRect.left,
+      top: startRect.top,
+      width: startRect.width + dx,
+      height: startRect.height + dy,
+    });
+  };
+
+  const stop = () => {
+    mode = "";
+    startRect = null;
+    window.removeEventListener("pointermove", move);
+  };
+
+  box.addEventListener("pointerdown", (event) => {
+    if (event.target.classList.contains("crop-handle")) return;
+    start(event, "move");
+  });
+  box.querySelector(".crop-handle").addEventListener("pointerdown", (event) => start(event, "resize"));
+}
+
+function resetCropBox(form) {
+  const cropper = form.querySelector(".cropper");
+  const box = form.querySelector(".crop-box");
+  const rect = cropper.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const size = Math.min(rect.width, rect.height) * 0.5;
+  setBoxRect(box, rect, {
+    left: (rect.width - size) / 2,
+    top: (rect.height - size) / 2,
+    width: size,
+    height: size,
+  });
+}
+
+function makeCropBoxSquare(form) {
+  const cropper = form.querySelector(".cropper");
+  const box = form.querySelector(".crop-box");
+  const cropperRect = cropper.getBoundingClientRect();
+  const rect = getBoxRect(box);
+  const size = Math.min(rect.width, rect.height);
+  setBoxRect(box, cropperRect, {
+    left: rect.left,
+    top: rect.top,
+    width: size,
+    height: size,
+  });
+}
+
+async function cropMainPhoto(form) {
+  const source = form.querySelector(".crop-source");
+  const box = form.querySelector(".crop-box");
+  const cropper = form.querySelector(".cropper");
+
+  if (!source.complete) {
+    await new Promise((resolve) => source.addEventListener("load", resolve, { once: true }));
+  }
+
+  const boxRect = getBoxRect(box);
+  const cropperRect = cropper.getBoundingClientRect();
+  const scaleX = source.naturalWidth / cropperRect.width;
+  const scaleY = source.naturalHeight / cropperRect.height;
+  const canvas = document.createElement("canvas");
+  const size = 600;
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+
+  context.drawImage(
+    source,
+    boxRect.left * scaleX,
+    boxRect.top * scaleY,
+    boxRect.width * scaleX,
+    boxRect.height * scaleY,
+    0,
+    0,
+    size,
+    size
+  );
+
+  return canvas.toDataURL("image/jpeg", 0.9);
+}
+
+function getPointer(event) {
+  return {
+    x: event.clientX,
+    y: event.clientY,
+  };
+}
+
+function getBoxRect(box) {
+  return {
+    left: parseFloat(box.style.left) || 0,
+    top: parseFloat(box.style.top) || 0,
+    width: parseFloat(box.style.width) || box.offsetWidth,
+    height: parseFloat(box.style.height) || box.offsetHeight,
+  };
+}
+
+function setBoxRect(box, cropperRect, next) {
+  const minSize = 44;
+  const width = Math.min(Math.max(next.width, minSize), cropperRect.width);
+  const height = Math.min(Math.max(next.height, minSize), cropperRect.height);
+  const left = Math.min(Math.max(next.left, 0), cropperRect.width - width);
+  const top = Math.min(Math.max(next.top, 0), cropperRect.height - height);
+
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
+  box.style.width = `${width}px`;
+  box.style.height = `${height}px`;
+}
+
 function renderStats(current, upcoming) {
   const allLineup = state.releases.flatMap((release) => release.lineup);
   const owned = allLineup.reduce((sum, item) => sum + item.count, 0);
-  const moods = {
-    want: allLineup.filter((item) => item.mood === "want").length,
-    normal: allLineup.filter((item) => item.mood === "normal").length,
-    skip: allLineup.filter((item) => item.mood === "skip").length,
-  };
 
   document.querySelector("#heroTotal").textContent = current.length;
   document.querySelector("#heroUpcoming").textContent = `発売予定 ${upcoming.length}件`;
@@ -275,14 +424,15 @@ function renderStats(current, upcoming) {
   document.querySelector("#statLineup").textContent = allLineup.length;
   document.querySelector("#statOwned").textContent = owned;
 
-  const chart = document.querySelector("#moodChart");
+  const chart = document.querySelector("#releaseChart");
   chart.innerHTML = "";
-  const rows = [
-    ["ほしい！", moods.want],
-    ["ふつう", moods.normal],
-    ["いらない", moods.skip],
-  ];
+  const rows = state.releases.map((release) => [release.name, release.lineup.length]);
   const max = Math.max(...rows.map(([, count]) => count), 1);
+
+  if (!rows.length) {
+    chart.innerHTML = '<p class="note">ガチャを登録すると、ラインナップ数が表示されます。</p>';
+    return;
+  }
 
   rows.forEach(([label, count]) => {
     const row = document.createElement("div");
@@ -360,7 +510,18 @@ function fileToDataUrl(file) {
 }
 
 function normalizeImportedData(data) {
-  if (Array.isArray(data.releases)) return data.releases;
+  if (Array.isArray(data.releases)) {
+    return data.releases.map((release) => ({
+      ...release,
+      lineup: (release.lineup || []).map((item) => ({
+        id: item.id || crypto.randomUUID(),
+        name: item.name || "ラインナップ",
+        photo: item.photo || "",
+        count: Number(item.count) || 0,
+        createdAt: item.createdAt || new Date().toISOString(),
+      })),
+    }));
+  }
 
   const legacyItems = Array.isArray(data.items) ? data.items : [];
   return legacyItems.map((item) => ({
@@ -375,7 +536,6 @@ function normalizeImportedData(data) {
         id: crypto.randomUUID(),
         name: item.name || "ラインナップ",
         photo: "",
-        mood: "normal",
         count: Number(item.quantity) || 0,
         createdAt: item.createdAt || new Date().toISOString(),
       },

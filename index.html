@@ -6,13 +6,13 @@
     <title>Capsule Shelf | ガチャガチャ管理ツール</title>
     <meta
       name="description"
-      content="発売中・発売予定のガチャガチャとラインナップ、欲しい度、所持数を写真つきで管理できるサイト。"
+      content="発売中・発売予定のガチャガチャとラインナップ、所持数を写真つきで管理できるサイト。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Capsule Shelf | ガチャガチャ管理ツール" />
     <meta
       property="og:description"
-      content="ガチャの発売月・週、ラインナップ、所持数、ほしい度をスマホで見やすく管理。"
+      content="ガチャの発売月・週、ラインナップ、所持数をスマホで見やすく管理。"
     />
     <meta property="og:image" content="./assets/ogp.png" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -37,7 +37,7 @@
           <p class="eyebrow">Gachapon Release Manager</p>
           <h1>発売予定からラインナップまで、ガチャをまるっと管理。</h1>
           <p class="lead">
-            ガチャごとに写真・発売月・週を登録。ラインナップごとに所持数と「ほしい！」を管理できます。
+            ガチャごとに写真・発売月・週を登録。ラインナップごとに写真を切り取り、所持数を管理できます。
           </p>
         </div>
         <div class="hero-panel" aria-label="登録状況">
@@ -190,8 +190,8 @@
           </article>
         </div>
         <div class="chart-wrap">
-          <h3>ほしい度の内訳</h3>
-          <div id="moodChart" class="series-chart"></div>
+          <h3>ガチャ別ラインナップ数</h3>
+          <div id="releaseChart" class="series-chart"></div>
         </div>
       </section>
     </main>
@@ -223,19 +223,27 @@
                     <input class="lineup-name-input" required placeholder="例：クリームソーダ" />
                   </label>
                   <label>
-                    個別写真
+                    別写真を使う
                     <input class="lineup-photo-input" type="file" accept="image/*" />
                   </label>
-                  <label>
-                    ほしい度
-                    <select class="lineup-mood-input">
-                      <option value="want">ほしい！</option>
-                      <option value="normal">ふつう</option>
-                      <option value="skip">いらない</option>
-                    </select>
-                  </label>
                 </div>
-                <p class="note">個別写真を入れない場合は、メイン写真をラインナップ数に合わせて自動で切り分けます。</p>
+                <div class="crop-section">
+                  <div class="crop-head">
+                    <strong>メイン写真から切り取り</strong>
+                    <span>枠をドラッグして、角をつまんでサイズ調整できます。</span>
+                  </div>
+                  <div class="cropper">
+                    <img class="crop-source" alt="" />
+                    <div class="crop-box" aria-hidden="true">
+                      <span class="crop-handle"></span>
+                    </div>
+                  </div>
+                  <div class="crop-actions">
+                    <button class="ghost-button crop-reset-button" type="button">中央に戻す</button>
+                    <button class="ghost-button crop-square-button" type="button">正方形にする</button>
+                  </div>
+                </div>
+                <p class="note">別写真を入れた場合はその写真を使います。入れない場合は、ここで切り取った画像を使います。</p>
                 <div class="form-actions">
                   <button class="primary-button" type="submit">追加</button>
                   <button class="ghost-button cancel-lineup-button" type="button">閉じる</button>
@@ -244,7 +252,7 @@
               <div class="lineup-list"></div>
               <div class="empty-state lineup-empty">
                 <h3>まだラインナップがありません</h3>
-                <p>ラインナップ名を追加すると、写真の切り分けと所持数管理ができます。</p>
+                <p>ラインナップ名を追加すると、切り取り画像と所持数管理ができます。</p>
               </div>
             </section>
           </div>
@@ -261,18 +269,17 @@
         <div class="lineup-image"></div>
         <div class="lineup-body">
           <strong class="lineup-title"></strong>
-          <select class="mood-select" aria-label="ほしい度">
-            <option value="want">ほしい！</option>
-            <option value="normal">ふつう</option>
-            <option value="skip">いらない</option>
-          </select>
           <div class="counter">
             <button class="ghost-button minus-button" type="button">-</button>
             <span class="count-value">0</span>
             <button class="ghost-button plus-button" type="button">+</button>
           </div>
         </div>
-        <button class="danger-button delete-lineup-button" type="button">削除</button>
+        <div class="lineup-actions">
+          <button class="ghost-button move-up-button" type="button">上へ</button>
+          <button class="ghost-button move-down-button" type="button">下へ</button>
+          <button class="danger-button delete-lineup-button" type="button">削除</button>
+        </div>
       </article>
     </template>
 

@@ -3,11 +3,9 @@
   --ink: #24131b;
   --muted: #735764;
   --line: #f0d3db;
-  --paper: #fffaf8;
   --soft: #fff0f3;
   --accent: #f55f7a;
   --accent-strong: #d9365f;
-  --mint: #58c7b8;
   --yellow: #ffd064;
   --shadow: 0 18px 45px rgba(108, 40, 58, 0.14);
 }
@@ -35,6 +33,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 h1,
@@ -307,7 +310,7 @@ h2 {
 }
 
 .mini-grid {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(120px, 160px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 label {
@@ -351,7 +354,8 @@ textarea:focus {
 }
 
 .form-actions,
-.settings-grid {
+.settings-grid,
+.crop-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -402,7 +406,8 @@ textarea:focus {
 
 .summary-text small,
 .summary-count,
-.note {
+.note,
+.crop-head span {
   color: var(--muted);
 }
 
@@ -461,6 +466,57 @@ textarea:focus {
   margin: 0;
 }
 
+.crop-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.crop-head {
+  display: grid;
+  gap: 3px;
+}
+
+.cropper {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  touch-action: none;
+}
+
+.crop-source {
+  display: block;
+  width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.crop-box {
+  position: absolute;
+  left: 12%;
+  top: 12%;
+  width: 42%;
+  height: 42%;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  background: rgba(245, 95, 122, 0.18);
+  box-shadow: 0 0 0 999px rgba(36, 19, 27, 0.42);
+  touch-action: none;
+}
+
+.crop-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 .lineup-list {
   display: grid;
   gap: 10px;
@@ -495,10 +551,6 @@ textarea:focus {
   font-size: 1rem;
 }
 
-.mood-select {
-  max-width: 180px;
-}
-
 .counter {
   display: inline-grid;
   grid-template-columns: 38px 46px 38px;
@@ -515,6 +567,19 @@ textarea:focus {
   text-align: center;
   font-size: 1.2rem;
   font-weight: 900;
+}
+
+.lineup-actions {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 8px;
+}
+
+.lineup-actions .ghost-button,
+.lineup-actions .danger-button {
+  min-height: 36px;
+  padding: 6px 10px;
+  white-space: nowrap;
 }
 
 .release-actions {
@@ -730,20 +795,22 @@ textarea:focus {
   }
 
   .lineup-item {
-    grid-template-columns: 86px minmax(0, 1fr);
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .lineup-image {
-    width: 86px;
+    width: 78px;
   }
 
-  .delete-lineup-button {
+  .lineup-actions {
     grid-column: 1 / -1;
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .release-actions,
   .settings-grid,
-  .form-actions {
+  .form-actions,
+  .crop-actions {
     flex-direction: column;
     align-items: stretch;
   }
