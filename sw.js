@@ -1,4 +1,4 @@
-const CACHE_NAME = "capsule-shelf-v4";
+const CACHE_NAME = "capsule-shelf-v5";
 const CACHE_FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const CACHE_FILES = [
   "./assets/icon-192.png",
   "./assets/icon-512.png",
   "./assets/ogp.png",
+  "./assets/ribbon-hero.png",
 ];
 
 self.addEventListener("install", (event) => {

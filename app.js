@@ -265,10 +265,13 @@ function updateAchievementText(target, item) {
   const desired = Math.max(0, Number(item.desiredCount) || 0);
   const owned = Math.max(0, Number(item.count) || 0);
   const percent = desired ? Math.min(999, Math.round((owned / desired) * 100)) : 0;
+  const meter = target.closest(".achievement-meter");
+  const fill = meter?.querySelector(".achievement-fill");
   target.textContent = `達成 ${owned}/${desired} (${percent}%)`;
-  target.classList.toggle("is-low", percent < 50);
-  target.classList.toggle("is-mid", percent >= 50 && percent < 100);
-  target.classList.toggle("is-done", percent >= 100);
+  if (fill) fill.style.width = `${Math.min(100, percent)}%`;
+  meter?.classList.toggle("is-low", percent < 50);
+  meter?.classList.toggle("is-mid", percent >= 50 && percent < 100);
+  meter?.classList.toggle("is-done", percent >= 100);
 }
 
 function setupCropper(form, photo) {
