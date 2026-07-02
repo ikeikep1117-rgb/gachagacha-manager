@@ -1,29 +1,43 @@
-const STORAGE_KEY = "capsule-shelf-items";
-const WISH_KEY = "capsule-shelf-wishes";
+const STORAGE_KEY = "capsule-shelf-releases-v2";
+const LEGACY_KEYS = ["capsule-shelf-items", "capsule-shelf-wishes"];
 const SERVICE_WORKER_PATH = "./sw.js";
 
 const state = {
-  items: readStorage(STORAGE_KEY, []),
-  wishes: readStorage(WISH_KEY, []),
-  query: "",
-  sort: "newest",
+  releases: readStorage(STORAGE_KEY, []),
 };
 
 const tabs = document.querySelectorAll(".tab");
 const panels = document.querySelectorAll(".panel");
-const itemForm = document.querySelector("#itemForm");
-const collectionList = document.querySelector("#collectionList");
-const collectionEmpty = document.querySelector("#collectionEmpty");
-const itemTemplate = document.querySelector("#itemTemplate");
-const searchInput = document.querySelector("#searchInput");
-const sortSelect = document.querySelector("#sortSelect");
-const wishForm = document.querySelector("#wishForm");
-const wishList = document.querySelector("#wishList");
-const wishEmpty = document.querySelector("#wishEmpty");
+const settingsPanel = document.querySelector("#settingsPanel");
+const currentForm = document.querySelector("#currentForm");
+const upcomingForm = document.querySelector("#upcomingForm");
+const currentList = document.querySelector("#currentList");
+const upcomingList = document.querySelector("#upcomingList");
+const gachaTemplate = document.querySelector("#gachaTemplate");
+const lineupTemplate = document.querySelector("#lineupTemplate");
 
-document.querySelector("[data-open-form]").addEventListener("click", () => {
-  itemForm.classList.add("is-open");
-  document.querySelector("#name").focus();
+moveDueUpcoming();
+setDefaultMonths();
+
+document.querySelector("#settingsToggle").addEventListener("click", () => {
+  settingsPanel.classList.toggle("is-open");
+});
+
+document.querySelectorAll("[data-open-form]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const form = document.querySelector(`#${button.dataset.openForm}`);
+    form.classList.add("is-open");
+    form.querySelector("input").focus();
+  });
+});
+
+document.querySelectorAll("[data-close-form]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const form = document.querySelector(`#${button.dataset.closeForm}`);
+    form.reset();
+    form.classList.remove("is-open");
+    setDefaultMonths();
+  });
 });
 
 tabs.forEach((tab) => {
@@ -33,108 +47,31 @@ tabs.forEach((tab) => {
   });
 });
 
-itemForm.addEventListener("submit", (event) => {
+currentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
-  const formData = getFormData();
-  const editId = document.querySelector("#editId").value;
-
-  if (editId) {
-    state.items = state.items.map((item) => (item.id === editId ? { ...item, ...formData } : item));
-  } else {
-    state.items.unshift({
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      ...formData,
-    });
-  }
-
-  saveItems();
-  resetForm();
+  const release = await buildReleaseFromForm("current");
+  state.releases.unshift(release);
+  save();
+  currentForm.reset();
+  currentForm.classList.remove("is-open");
+  setDefaultMonths();
   render();
 });
 
-document.querySelector("#cancelEdit").addEventListener("click", resetForm);
-
-searchInput.addEventListener("input", (event) => {
-  state.query = event.target.value.trim().toLowerCase();
-  renderCollection();
-});
-
-sortSelect.addEventListener("change", (event) => {
-  state.sort = event.target.value;
-  renderCollection();
-});
-
-wishForm.addEventListener("submit", (event) => {
+upcomingForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const name = document.querySelector("#wishName").value.trim();
-  const series = document.querySelector("#wishSeries").value.trim();
-
-  if (!name) return;
-
-  state.wishes.unshift({
-    id: crypto.randomUUID(),
-    name,
-    series,
-    createdAt: new Date().toISOString(),
-  });
-  wishForm.reset();
-  saveWishes();
-  renderWishlist();
-});
-
-document.querySelector("#sampleButton").addEventListener("click", () => {
-  if (state.items.length || state.wishes.length) return;
-
-  state.items = [
-    {
-      id: crypto.randomUUID(),
-      name: "喫茶店のプリン",
-      series: "レトロ純喫茶",
-      quantity: 2,
-      rarity: "レア",
-      acquiredDate: "2026-06-22",
-      status: "飾っている",
-      memo: "クリームの造形がかわいい。1つは交換候補。",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "透明カプセルの宇宙飛行士",
-      series: "小さな宇宙博",
-      quantity: 1,
-      rarity: "シークレット",
-      acquiredDate: "2026-06-18",
-      status: "保管中",
-      memo: "台座つき。",
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "柴犬のおすわり",
-      series: "公園どうぶつ",
-      quantity: 3,
-      rarity: "ノーマル",
-      acquiredDate: "2026-06-10",
-      status: "交換候補",
-      memo: "",
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-    },
-  ];
-
-  state.wishes = [
-    { id: crypto.randomUUID(), name: "クリームソーダ", series: "レトロ純喫茶", createdAt: new Date().toISOString() },
-    { id: crypto.randomUUID(), name: "月面探査車", series: "小さな宇宙博", createdAt: new Date().toISOString() },
-  ];
-
-  saveItems();
-  saveWishes();
+  const release = await buildReleaseFromForm("upcoming");
+  state.releases.unshift(release);
+  save();
+  upcomingForm.reset();
+  upcomingForm.classList.remove("is-open");
+  setDefaultMonths();
+  moveDueUpcoming();
   render();
 });
 
 document.querySelector("#exportButton").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify({ items: state.items, wishes: state.wishes }, null, 2)], {
+  const blob = new Blob([JSON.stringify({ releases: state.releases }, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
@@ -151,10 +88,9 @@ document.querySelector("#importInput").addEventListener("change", async (event) 
 
   try {
     const data = JSON.parse(await file.text());
-    state.items = Array.isArray(data.items) ? data.items : [];
-    state.wishes = Array.isArray(data.wishes) ? data.wishes : [];
-    saveItems();
-    saveWishes();
+    state.releases = normalizeImportedData(data);
+    moveDueUpcoming();
+    save();
     render();
   } catch {
     alert("読み込めないJSONファイルです。");
@@ -165,165 +101,292 @@ document.querySelector("#importInput").addEventListener("change", async (event) 
 
 document.querySelector("#clearButton").addEventListener("click", () => {
   if (!confirm("登録データをすべて削除しますか？")) return;
-  state.items = [];
-  state.wishes = [];
-  saveItems();
-  saveWishes();
+  state.releases = [];
+  save();
+  LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
   render();
 });
 
-function getFormData() {
+async function buildReleaseFromForm(type) {
+  const prefix = type === "current" ? "current" : "upcoming";
+  const photoFile = document.querySelector(`#${prefix}Photo`).files[0];
+
   return {
-    name: document.querySelector("#name").value.trim(),
-    series: document.querySelector("#series").value.trim(),
-    quantity: Number(document.querySelector("#quantity").value) || 1,
-    rarity: document.querySelector("#rarity").value,
-    acquiredDate: document.querySelector("#acquiredDate").value,
-    status: document.querySelector("#status").value,
-    memo: document.querySelector("#memo").value.trim(),
+    id: crypto.randomUUID(),
+    status: type,
+    name: document.querySelector(`#${prefix}Name`).value.trim(),
+    releaseMonth: document.querySelector(`#${prefix}Month`).value,
+    releaseWeek: Number(document.querySelector(`#${prefix}Week`).value),
+    photo: await fileToDataUrl(photoFile),
+    lineup: [],
+    open: true,
+    createdAt: new Date().toISOString(),
   };
 }
 
-function resetForm() {
-  itemForm.reset();
-  document.querySelector("#editId").value = "";
-  document.querySelector("#quantity").value = 1;
-  itemForm.classList.remove("is-open");
-}
-
 function render() {
-  renderCollection();
-  renderWishlist();
-  renderStats();
+  const current = sortReleases(state.releases.filter((release) => release.status === "current"));
+  const upcoming = sortReleases(state.releases.filter((release) => release.status === "upcoming"));
+
+  renderReleaseList(currentList, current, "current");
+  renderReleaseList(upcomingList, upcoming, "upcoming");
+  document.querySelector("#currentEmpty").classList.toggle("is-visible", current.length === 0);
+  document.querySelector("#upcomingEmpty").classList.toggle("is-visible", upcoming.length === 0);
+  renderStats(current, upcoming);
 }
 
-function renderCollection() {
-  const items = getVisibleItems();
-  collectionList.innerHTML = "";
-  collectionEmpty.classList.toggle("is-visible", items.length === 0);
+function renderReleaseList(container, releases, listType) {
+  container.innerHTML = "";
 
-  items.forEach((item) => {
-    const node = itemTemplate.content.firstElementChild.cloneNode(true);
-    node.querySelector("h3").textContent = item.name;
-    node.querySelector(".series-name").textContent = item.series;
-    node.querySelector(".memo-text").textContent = item.memo;
-    node.querySelector(".rarity-badge").textContent = item.rarity;
-    node.querySelector(".quantity-badge").textContent = `${item.quantity}個`;
-    node.querySelector(".date-text").textContent = item.acquiredDate || "未設定";
-    node.querySelector(".status-text").textContent = item.status;
-    node.querySelector(".edit-button").addEventListener("click", () => editItem(item.id));
-    node.querySelector(".delete-button").addEventListener("click", () => deleteItem(item.id));
-    collectionList.append(node);
+  releases.forEach((release) => {
+    const node = gachaTemplate.content.firstElementChild.cloneNode(true);
+    node.classList.toggle("is-open", release.open);
+    node.dataset.id = release.id;
+    node.querySelector(".release-name").textContent = release.name;
+    node.querySelector(".release-date").textContent = `${formatMonth(release.releaseMonth)} 第${release.releaseWeek}週`;
+    node.querySelector(".summary-count").textContent = `${release.lineup.length}種`;
+    node.querySelector(".summary-photo").style.backgroundImage = `url("${release.photo}")`;
+    node.querySelector(".main-photo").src = release.photo;
+    node.querySelector(".main-photo").alt = `${release.name}のラインナップ写真`;
+
+    node.querySelector(".release-summary").addEventListener("click", () => {
+      release.open = !release.open;
+      save();
+      render();
+    });
+
+    const lineupForm = node.querySelector(".lineup-form");
+    node.querySelector(".add-lineup-button").addEventListener("click", () => {
+      lineupForm.classList.add("is-open");
+      lineupForm.querySelector("input").focus();
+    });
+    node.querySelector(".cancel-lineup-button").addEventListener("click", () => {
+      lineupForm.reset();
+      lineupForm.classList.remove("is-open");
+    });
+    lineupForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const nameInput = lineupForm.querySelector(".lineup-name-input");
+      const photoInput = lineupForm.querySelector(".lineup-photo-input");
+      const moodInput = lineupForm.querySelector(".lineup-mood-input");
+      const photo = photoInput.files[0] ? await fileToDataUrl(photoInput.files[0]) : "";
+
+      release.lineup.push({
+        id: crypto.randomUUID(),
+        name: nameInput.value.trim(),
+        photo,
+        mood: moodInput.value,
+        count: 0,
+        createdAt: new Date().toISOString(),
+      });
+      save();
+      render();
+    });
+
+    renderLineup(node, release);
+
+    const moveButton = node.querySelector(".move-button");
+    moveButton.textContent = listType === "current" ? "発売予定に戻す" : "発売中に移動";
+    moveButton.addEventListener("click", () => {
+      release.status = listType === "current" ? "upcoming" : "current";
+      release.open = true;
+      save();
+      render();
+    });
+
+    node.querySelector(".delete-release-button").addEventListener("click", () => {
+      if (!confirm(`${release.name}を削除しますか？`)) return;
+      state.releases = state.releases.filter((item) => item.id !== release.id);
+      save();
+      render();
+    });
+
+    container.append(node);
   });
 }
 
-function getVisibleItems() {
-  const filtered = state.items.filter((item) => {
-    const haystack = `${item.name} ${item.series} ${item.memo}`.toLowerCase();
-    return haystack.includes(state.query);
+function renderLineup(node, release) {
+  const lineupList = node.querySelector(".lineup-list");
+  const lineupEmpty = node.querySelector(".lineup-empty");
+  lineupList.innerHTML = "";
+  lineupEmpty.classList.toggle("is-visible", release.lineup.length === 0);
+
+  release.lineup.forEach((item, index) => {
+    const row = lineupTemplate.content.firstElementChild.cloneNode(true);
+    const image = row.querySelector(".lineup-image");
+    row.querySelector(".lineup-title").textContent = item.name;
+    row.querySelector(".count-value").textContent = item.count;
+
+    if (item.photo) {
+      image.style.backgroundImage = `url("${item.photo}")`;
+      image.style.backgroundSize = "cover";
+      image.style.backgroundPosition = "center";
+    } else {
+      const total = Math.max(release.lineup.length, 1);
+      image.style.backgroundImage = `url("${release.photo}")`;
+      image.style.backgroundSize = `${total * 100}% 100%`;
+      image.style.backgroundPosition = `${total === 1 ? 50 : (index / (total - 1)) * 100}% center`;
+    }
+
+    const moodSelect = row.querySelector(".mood-select");
+    moodSelect.value = item.mood;
+    moodSelect.addEventListener("change", () => {
+      item.mood = moodSelect.value;
+      save();
+      renderStats(
+        state.releases.filter((releaseItem) => releaseItem.status === "current"),
+        state.releases.filter((releaseItem) => releaseItem.status === "upcoming")
+      );
+    });
+
+    row.querySelector(".minus-button").addEventListener("click", () => {
+      item.count = Math.max(0, item.count - 1);
+      save();
+      render();
+    });
+    row.querySelector(".plus-button").addEventListener("click", () => {
+      item.count += 1;
+      save();
+      render();
+    });
+    row.querySelector(".delete-lineup-button").addEventListener("click", () => {
+      release.lineup = release.lineup.filter((lineupItem) => lineupItem.id !== item.id);
+      save();
+      render();
+    });
+
+    lineupList.append(row);
+  });
+}
+
+function renderStats(current, upcoming) {
+  const allLineup = state.releases.flatMap((release) => release.lineup);
+  const owned = allLineup.reduce((sum, item) => sum + item.count, 0);
+  const moods = {
+    want: allLineup.filter((item) => item.mood === "want").length,
+    normal: allLineup.filter((item) => item.mood === "normal").length,
+    skip: allLineup.filter((item) => item.mood === "skip").length,
+  };
+
+  document.querySelector("#heroTotal").textContent = current.length;
+  document.querySelector("#heroUpcoming").textContent = `発売予定 ${upcoming.length}件`;
+  document.querySelector("#statCurrent").textContent = current.length;
+  document.querySelector("#statUpcoming").textContent = upcoming.length;
+  document.querySelector("#statLineup").textContent = allLineup.length;
+  document.querySelector("#statOwned").textContent = owned;
+
+  const chart = document.querySelector("#moodChart");
+  chart.innerHTML = "";
+  const rows = [
+    ["ほしい！", moods.want],
+    ["ふつう", moods.normal],
+    ["いらない", moods.skip],
+  ];
+  const max = Math.max(...rows.map(([, count]) => count), 1);
+
+  rows.forEach(([label, count]) => {
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <span class="bar-name"></span>
+      <span class="bar-track"><span class="bar-fill"></span></span>
+      <strong></strong>
+    `;
+    row.querySelector(".bar-name").textContent = label;
+    row.querySelector(".bar-fill").style.width = `${Math.max(8, (count / max) * 100)}%`;
+    row.querySelector("strong").textContent = count;
+    chart.append(row);
+  });
+}
+
+function moveDueUpcoming() {
+  const now = getCurrentReleasePosition();
+  let changed = false;
+
+  state.releases.forEach((release) => {
+    if (release.status !== "upcoming") return;
+    const releasePosition = releaseToPosition(release.releaseMonth, release.releaseWeek);
+    if (releasePosition <= now) {
+      release.status = "current";
+      release.open = true;
+      changed = true;
+    }
   });
 
-  return [...filtered].sort((a, b) => {
-    if (state.sort === "name") return a.name.localeCompare(b.name, "ja");
-    if (state.sort === "series") return a.series.localeCompare(b.series, "ja");
-    if (state.sort === "quantity") return b.quantity - a.quantity;
+  if (changed) save();
+}
+
+function getCurrentReleasePosition() {
+  const today = new Date();
+  const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  return releaseToPosition(month, getWeekOfMonth(today));
+}
+
+function releaseToPosition(month, week) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return year * 1000 + monthNumber * 10 + Number(week);
+}
+
+function getWeekOfMonth(date) {
+  return Math.min(5, Math.ceil(date.getDate() / 7));
+}
+
+function sortReleases(releases) {
+  return [...releases].sort((a, b) => {
+    const byRelease = releaseToPosition(a.releaseMonth, a.releaseWeek) - releaseToPosition(b.releaseMonth, b.releaseWeek);
+    if (byRelease !== 0) return byRelease;
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 }
 
-function editItem(id) {
-  const item = state.items.find((entry) => entry.id === id);
-  if (!item) return;
-
-  document.querySelector("#editId").value = item.id;
-  document.querySelector("#name").value = item.name;
-  document.querySelector("#series").value = item.series;
-  document.querySelector("#quantity").value = item.quantity;
-  document.querySelector("#rarity").value = item.rarity;
-  document.querySelector("#acquiredDate").value = item.acquiredDate;
-  document.querySelector("#status").value = item.status;
-  document.querySelector("#memo").value = item.memo;
-  itemForm.classList.add("is-open");
-  itemForm.scrollIntoView({ behavior: "smooth", block: "start" });
+function setDefaultMonths() {
+  const value = new Date().toISOString().slice(0, 7);
+  document.querySelector("#currentMonth").value ||= value;
+  document.querySelector("#upcomingMonth").value ||= value;
 }
 
-function deleteItem(id) {
-  state.items = state.items.filter((item) => item.id !== id);
-  saveItems();
-  render();
+function formatMonth(month) {
+  const [year, monthNumber] = month.split("-");
+  return `${year}年${Number(monthNumber)}月`;
 }
 
-function renderWishlist() {
-  wishList.innerHTML = "";
-  wishEmpty.classList.toggle("is-visible", state.wishes.length === 0);
-
-  state.wishes.forEach((wish) => {
-    const row = document.createElement("article");
-    row.className = "wish-item";
-    row.innerHTML = `
-      <div>
-        <strong></strong>
-        <span></span>
-      </div>
-      <button class="danger-button" type="button">削除</button>
-    `;
-    row.querySelector("strong").textContent = wish.name;
-    row.querySelector("span").textContent = wish.series || "シリーズ未設定";
-    row.querySelector("button").addEventListener("click", () => {
-      state.wishes = state.wishes.filter((item) => item.id !== wish.id);
-      saveWishes();
-      renderWishlist();
-    });
-    wishList.append(row);
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
-function renderStats() {
-  const totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
-  const seriesNames = new Set(state.items.map((item) => item.series));
-  const secretCount = state.items.filter((item) => item.rarity === "シークレット").length;
+function normalizeImportedData(data) {
+  if (Array.isArray(data.releases)) return data.releases;
 
-  document.querySelector("#heroTotal").textContent = state.items.length;
-  document.querySelector("#statItems").textContent = state.items.length;
-  document.querySelector("#statQuantity").textContent = totalQuantity;
-  document.querySelector("#statSeries").textContent = seriesNames.size;
-  document.querySelector("#statSecret").textContent = secretCount;
-
-  const chart = document.querySelector("#seriesChart");
-  chart.innerHTML = "";
-  const bySeries = state.items.reduce((acc, item) => {
-    acc[item.series] = (acc[item.series] || 0) + item.quantity;
-    return acc;
-  }, {});
-  const max = Math.max(...Object.values(bySeries), 1);
-
-  Object.entries(bySeries)
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([series, count]) => {
-      const row = document.createElement("div");
-      row.className = "bar-row";
-      row.innerHTML = `
-        <span class="bar-name"></span>
-        <span class="bar-track"><span class="bar-fill"></span></span>
-        <strong></strong>
-      `;
-      row.querySelector(".bar-name").textContent = series;
-      row.querySelector(".bar-fill").style.width = `${Math.max(8, (count / max) * 100)}%`;
-      row.querySelector("strong").textContent = count;
-      chart.append(row);
-    });
-
-  if (!Object.keys(bySeries).length) {
-    chart.innerHTML = '<p class="note">登録するとシリーズ別の数が表示されます。</p>';
-  }
+  const legacyItems = Array.isArray(data.items) ? data.items : [];
+  return legacyItems.map((item) => ({
+    id: crypto.randomUUID(),
+    status: "current",
+    name: item.series || item.name || "名前未設定",
+    releaseMonth: item.acquiredDate ? item.acquiredDate.slice(0, 7) : new Date().toISOString().slice(0, 7),
+    releaseWeek: 1,
+    photo: "",
+    lineup: [
+      {
+        id: crypto.randomUUID(),
+        name: item.name || "ラインナップ",
+        photo: "",
+        mood: "normal",
+        count: Number(item.quantity) || 0,
+        createdAt: item.createdAt || new Date().toISOString(),
+      },
+    ],
+    open: true,
+    createdAt: item.createdAt || new Date().toISOString(),
+  }));
 }
 
-function saveItems() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
-}
-
-function saveWishes() {
-  localStorage.setItem(WISH_KEY, JSON.stringify(state.wishes));
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.releases));
 }
 
 function readStorage(key, fallback) {
